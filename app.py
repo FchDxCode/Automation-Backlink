@@ -10,7 +10,7 @@ import time
 
 app = Flask(__name__)
 
-# URL backlink tunggal
+# URL backlink 
 BACKLINK_URL = "https://depokwebsite.com/"
 
 # Load model multilingual
@@ -39,7 +39,7 @@ def get_valid_anchor_texts(text: str, skip_words: set) -> List[str]:
         and not word.isnumeric()  # Skip angka
     ]
     
-    # Dapatkan frasa 2-3 kata yang bermakna
+    # Dapatkan frasa 2-3 kata
     phrases = []
     for i in range(len(words) - 2):
         # Frasa 2 kata
@@ -77,7 +77,7 @@ def is_good_context(text: str) -> bool:
         'menciptakan', 'mengembangkan', 'menawarkan', 'terdapat',
         'tersedia', 'sebagai', 'termasuk', 'menjadi', 'dapat', 'bisa'
     }
-    return True  # Longgarkan validasi konteks
+    return True  # Longgarkan validasi
 
 def get_best_sentence_for_anchor(text: str, anchor: str) -> str:
     """
