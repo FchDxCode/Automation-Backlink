@@ -6,15 +6,19 @@ from typing import List, Tuple
 import spacy
 from spacy.language import Language
 from spacy.tokens import Doc
+import time
 
 app = Flask(__name__)
 
-# URL backlink tunggal
+# URL backlink 
 BACKLINK_URL = "https://depokwebsite.com/"
 
 # Load model multilingual
 try:
     nlp = spacy.load('xx_ent_wiki_sm')
+    # Tambahkan sentencizer ke pipeline
+    if 'sentencizer' not in nlp.pipe_names:
+        nlp.add_pipe('sentencizer')
 except Exception as e:
     print(f"Error loading spaCy model: {e}")
     raise
@@ -35,7 +39,7 @@ def get_valid_anchor_texts(text: str, skip_words: set) -> List[str]:
         and not word.isnumeric()  # Skip angka
     ]
     
-    # Dapatkan frasa 2-3 kata yang bermakna
+    # Dapatkan frasa 2-3 kata
     phrases = []
     for i in range(len(words) - 2):
         # Frasa 2 kata
@@ -73,7 +77,7 @@ def is_good_context(text: str) -> bool:
         'menciptakan', 'mengembangkan', 'menawarkan', 'terdapat',
         'tersedia', 'sebagai', 'termasuk', 'menjadi', 'dapat', 'bisa'
     }
-    return True  # Longgarkan validasi konteks
+    return True  # Longgarkan validasi
 
 def get_best_sentence_for_anchor(text: str, anchor: str) -> str:
     """
@@ -237,7 +241,7 @@ def add_backlink_to_text(text: str, backlink_url: str, skip_words: set, used_anc
     used_anchors.add(anchor_text.lower())
     
     # Buat link dengan format yang konsisten
-    link_html = f'''<a href="{backlink_url}" target="_blank" style="color: #2563eb !important; text-decoration: none !important;">{anchor_text}</a>'''
+    link_html = f'''<a href="{backlink_url}" target="_blank" style="text-decoration: none !important;">{anchor_text}</a>'''
     
     # Ganti teks dengan link
     pattern = re.compile(f'\\b{re.escape(anchor_text)}\\b', re.IGNORECASE)
@@ -320,139 +324,201 @@ def is_good_phrase(phrase: str) -> bool:
     
     return True
 
-def get_phrase_score(phrase: str, doc: Doc) -> float:
+def get_phrase_score(phrase: str) -> float:
     """
-    Menghitung skor untuk sebuah frasa
+    Menghitung skor untuk sebuah frasa berdasarkan konteks dan makna
     """
     score = 1.0
-    phrase_doc = nlp(phrase)
-    
-    # Bonus untuk frasa yang lebih panjang (2-3 kata)
     words = phrase.split()
-    if len(words) == 2:
+    
+    # Bonus untuk panjang frasa yang ideal
+    if 3 <= len(words) <= 8:  # Perluas range kata
+        score *= (1.0 + (len(words) * 0.1))
+    
+    # Bonus untuk frasa yang memiliki subjek dan predikat
+    doc = nlp(phrase)
+    has_subject = False
+    has_predicate = False
+    
+    for token in doc:
+        if token.dep_ in {'nsubj', 'nsubjpass'}:
+            has_subject = True
+        if token.pos_ == 'VERB':
+            has_predicate = True
+    
+    if has_subject and has_predicate:
+        score *= 1.5
+    
+    # Bonus untuk frasa yang memiliki kata benda penting
+    important_nouns = {
+        'sistem', 'teknologi', 'aplikasi', 'metode', 'strategi', 'proses',
+        'pengembangan', 'peningkatan', 'manajemen', 'solusi', 'implementasi',
+        'optimasi', 'efisiensi', 'produktivitas', 'kualitas', 'performa'
+    }
+    
+    if any(word.lower() in important_nouns for word in words):
         score *= 1.3
-    elif len(words) == 3:
-        score *= 1.5
-    
-    # Bonus untuk proper noun dan noun
-    if any(token.pos_ == "PROPN" for token in phrase_doc):
-        score *= 1.5
-    elif any(token.pos_ == "NOUN" for token in phrase_doc):
-        score *= 1.2
-    
-    # Penalti untuk kata-kata yang tidak diinginkan
-    bad_words = {'dalam', 'adalah', 'dengan', 'untuk', 'yang', 'dari', 'pada', 'akan', 'jika', 'bila', 'ketika', 'karena', 'sehingga'}
-    if any(word.lower() in bad_words for word in words):
-        score *= 0.5
     
     return score
 
-def is_good_sentence(sentence: str) -> bool:
+def is_meaningful_phrase(phrase: str, sentence: str) -> bool:
     """
-    Memeriksa apakah kalimat bagus untuk backlink
+    Memeriksa apakah frasa memiliki makna yang logis dalam konteks kalimat
     """
-    # Skip kalimat pendek
-    if len(sentence.split()) < 8:
+    # Analisis sintaksis
+    doc = nlp(sentence)
+    phrase_doc = nlp(phrase)
+    
+    # Periksa koherensi gramatikal
+    if len(phrase_doc) > 1:
+        has_valid_structure = False
+        for token in phrase_doc:
+            if token.dep_ in {'ROOT', 'nsubj', 'dobj', 'pobj'}:
+                has_valid_structure = True
+                break
+        if not has_valid_structure:
+            return False
+    
+    # Periksa konteks semantik
+    main_verbs = [token.lemma_ for token in doc if token.pos_ == 'VERB']
+    main_nouns = [token.lemma_ for token in doc if token.pos_ == 'NOUN']
+    
+    phrase_verbs = [token.lemma_ for token in phrase_doc if token.pos_ == 'VERB']
+    phrase_nouns = [token.lemma_ for token in phrase_doc if token.pos_ == 'NOUN']
+    
+    # Harus ada hubungan kata kerja atau kata benda dengan kalimat utama
+    if not (set(phrase_verbs) & set(main_verbs) or set(phrase_nouns) & set(main_nouns)):
+        return True  # Longgarkan untuk frasa yang independen tapi bermakna
+    
+    return True
+
+def is_good_sentence(text: str) -> bool:
+    """
+    Memeriksa apakah kalimat cukup panjang dan berkualitas untuk backlink
+    """
+    # Minimal 80 karakter (sedikit dilonggarkan)
+    if len(text) < 80:
         return False
-        
+    
+    # Minimal 7 kata
+    if len(text.split()) < 7:
+        return False
+    
     # Skip kalimat tanya atau seruan
-    if any(char in sentence for char in '?!'):
+    if any(char in text for char in '?!'):
         return False
     
-    # Skip kalimat dengan kata-kata yang tidak diinginkan di awal
-    bad_starters = {'jika', 'bila', 'ketika', 'karena', 'sehingga', 'namun', 'tetapi', 'maka', 'lalu', 'kemudian'}
-    first_word = sentence.split()[0].lower()
-    if first_word in bad_starters:
-        return False
-    
-    # Harus memiliki kata-kata informatif
+    # Harus memiliki kata-kata informatif (diperluas)
     informative_words = {
         'merupakan', 'memiliki', 'menghasilkan', 'berfungsi', 'digunakan',
         'menyediakan', 'menghadirkan', 'menciptakan', 'mengembangkan',
-        'menawarkan', 'terdapat', 'tersedia', 'termasuk'
+        'menawarkan', 'terdapat', 'tersedia', 'termasuk', 'menjadi',
+        'dapat', 'bisa', 'mampu', 'memberikan', 'menggunakan', 'melakukan',
+        'sistem', 'proses', 'teknologi', 'aplikasi', 'layanan', 'produk',
+        'solusi', 'metode', 'cara', 'strategi'
     }
     
-    return any(word in sentence.lower() for word in informative_words)
+    return True  # Longgarkan validasi kata informatif
 
-def add_backlinks(article: str, backlink_url: str, target_backlinks: int) -> str:
+def add_backlinks(article: str, backlink_url: str, target_backlinks: int, track_backlink) -> str:
     try:
         if not article.strip():
             return article
             
-        soup = BeautifulSoup(article, 'html.parser')
+        # Parse HTML dengan parser yang lebih ketat
+        soup = BeautifulSoup(article, 'html.parser', multi_valued_attributes=None)
         
-        # Dapatkan paragraf valid
+        # Dapatkan text nodes dengan mempertahankan struktur asli
         text_nodes = []
-        for element in soup.find_all(string=True):
-            if (element.parent.name not in ['a', 'script', 'style'] 
-                and len(element.strip()) > 40):
+        valid_tags = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th', 'div', 'span'}
+        
+        for element in soup.descendants:
+            if (isinstance(element, NavigableString) 
+                and element.parent 
+                and element.parent.name in valid_tags
+                and element.parent.name not in ['a', 'script', 'style', 'code', 'pre']
+                and len(element.strip()) > 80):
                 text_nodes.append(element)
         
         if not text_nodes:
             return article
-        
+            
         used_anchors = set()
         added_links = 0
+        attempts = 0
+        max_attempts = len(text_nodes) * 3
         
-        for node in text_nodes:
-            if added_links >= target_backlinks:
-                break
-                
-            text = node.string.strip()
-            if not text:
-                continue
-                
-            # Dapatkan frasa 2-3 kata
-            words = text.split()
-            candidates = []
-            
-            # Coba frasa 3 kata dulu
-            for i in range(len(words) - 2):
-                phrase = ' '.join(words[i:i+3])
-                if (len(phrase) > 12 
-                    and phrase.lower() not in used_anchors
-                    and not any(char in phrase for char in '.,!?:;()')
-                    and is_good_phrase(phrase)):
-                    candidates.append(phrase)
-            
-            # Jika tidak ada frasa 3 kata, coba frasa 2 kata
-            if not candidates:
-                for i in range(len(words) - 1):
-                    phrase = ' '.join(words[i:i+2])
-                    if (len(phrase) > 8 
-                        and phrase.lower() not in used_anchors
-                        and not any(char in phrase for char in '.,!?:;()')
-                        and is_good_phrase(phrase)):
-                        candidates.append(phrase)
-            
-            if candidates:
-                # Pilih frasa terpanjang
-                anchor = max(candidates, key=len)
-                used_anchors.add(anchor.lower())
-                
-                # Buat link
-                link_html = f'<a href="{backlink_url}" target="_blank" style="color: #2563eb !important; text-decoration: none !important;">{anchor}</a>'
-                
-                try:
-                    # Ganti teks dengan link
-                    pattern = re.compile(f'\\b{re.escape(anchor)}\\b')
-                    new_text = pattern.sub(link_html, text, count=1)
+        while added_links < target_backlinks and attempts < max_attempts:
+            for node_index, node in enumerate(text_nodes):
+                if added_links >= target_backlinks:
+                    break
                     
-                    if new_text != text:
-                        new_node = BeautifulSoup(new_text, 'html.parser')
-                        node.replace_with(new_node)
-                        added_links += 1
-                        print(f"Added link for: {anchor}")
-                except Exception as e:
-                    print(f"Error replacing text: {e}")
+                if not node.parent:
                     continue
+                    
+                # Pastikan parent tag tetap terjaga
+                parent_tag = node.parent
+                parent_attrs = dict(parent_tag.attrs)
+                
+                text = node.string.strip()
+                doc = nlp(text)
+                sentences = [sent.text.strip() for sent in doc.sents]
+                long_sentences = [s for s in sentences if is_good_sentence(s)]
+                
+                if not long_sentences:
+                    continue
+                
+                candidates = []
+                for sentence in long_sentences:
+                    words = sentence.split()
+                    
+                    for length in range(8, 1, -1):
+                        if len(candidates) >= 5:
+                            break
+                        for i in range(len(words) - (length - 1)):
+                            phrase = ' '.join(words[i:i+length])
+                            if (len(phrase) > 7
+                                and phrase.lower() not in used_anchors
+                                and not any(char in phrase for char in '.,!?:;()')
+                                and is_good_phrase(phrase)):
+                                candidates.append((phrase, sentence))
+                
+                if candidates and node.parent:
+                    phrase, sentence = max(candidates, key=lambda x: len(x[0]))
+                    used_anchors.add(phrase.lower())
+                    
+                    link_html = f'<a href="{backlink_url}" target="_blank" style="color: #2563eb !important; text-decoration: none !important;">{phrase}</a>'
+                    
+                    try:
+                        pattern = re.compile(f'\\b{re.escape(phrase)}\\b')
+                        new_sentence = pattern.sub(link_html, sentence, count=1)
+                        new_text = text.replace(sentence, new_sentence)
+                        
+                        if new_text != text and node.parent:
+                            # Buat fragment dengan mempertahankan tag parent
+                            fragment = BeautifulSoup(new_text, 'html.parser')
+                            
+                            # Jika parent bukan paragraph, wrap konten dalam tag parent yang sama
+                            if parent_tag.name != 'p':
+                                new_parent = soup.new_tag(parent_tag.name, **parent_attrs)
+                                for content in fragment.contents:
+                                    new_parent.append(content)
+                                node.replace_with(new_parent)
+                            else:
+                                node.replace_with(*fragment.contents)
+                                
+                            added_links += 1
+                            print(f"Added link in sentence: {phrase}")
+                            track_backlink(phrase)
+                    except Exception as e:
+                        print(f"Error replacing text: {e}")
+                        continue
             
-            # Reset used_anchors jika perlu lebih banyak link
-            if added_links < target_backlinks // 2 and node == text_nodes[-1]:
+            attempts += 1
+            if attempts % len(text_nodes) == 0:
                 used_anchors.clear()
-                print("Resetting used anchors to find more opportunities...")
         
-        print(f"Added {added_links} backlinks out of {target_backlinks} target")
+        # Return HTML dengan format asli yang terjaga
         return str(soup)
         
     except Exception as e:
@@ -469,17 +535,27 @@ def process_article():
         article = request.form.get('article', "")
         target_backlinks = max(50, int(request.form.get('num_backlinks', 50)))
         
-        if not article.strip():
-            return jsonify({"error": "Article content cannot be empty."}), 400
+        # Track backlinks yang ditambahkan
+        backlinks_added = []
         
-        processed_article = add_backlinks(article, BACKLINK_URL, target_backlinks)
-        return jsonify({"processed_article": processed_article})
+        def track_backlink(phrase):
+            backlinks_added.append(phrase)
+        
+        # Proses artikel dengan tracking
+        processed_article = add_backlinks(article, BACKLINK_URL, target_backlinks, track_backlink)
+        
+        return jsonify({
+            'processed_article': processed_article,
+            'total_backlinks': len(backlinks_added),
+            'target_backlinks': target_backlinks,
+            'backlinks': backlinks_added,
+            'success': True
+        })
         
     except Exception as e:
-        print(f"Processing error: {e}")
         return jsonify({
-            "error": "An error occurred while processing the article.",
-            "processed_article": article
+            'error': str(e),
+            'processed_article': article
         }), 500
 
 if __name__ == "__main__":

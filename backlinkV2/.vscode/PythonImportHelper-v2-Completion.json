@@ -1,0 +1,280 @@
+[
+    {
+        "label": "Flask",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "request",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "jsonify",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "render_template",
+        "importPath": "flask",
+        "description": "flask",
+        "isExtraImport": true,
+        "detail": "flask",
+        "documentation": {}
+    },
+    {
+        "label": "BeautifulSoup",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "NavigableString",
+        "importPath": "bs4",
+        "description": "bs4",
+        "isExtraImport": true,
+        "detail": "bs4",
+        "documentation": {}
+    },
+    {
+        "label": "random",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "spacy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "spacy",
+        "description": "spacy",
+        "detail": "spacy",
+        "documentation": {}
+    },
+    {
+        "label": "Language",
+        "importPath": "spacy.language",
+        "description": "spacy.language",
+        "isExtraImport": true,
+        "detail": "spacy.language",
+        "documentation": {}
+    },
+    {
+        "label": "Doc",
+        "importPath": "spacy.tokens",
+        "description": "spacy.tokens",
+        "isExtraImport": true,
+        "detail": "spacy.tokens",
+        "documentation": {}
+    },
+    {
+        "label": "time",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "time",
+        "description": "time",
+        "detail": "time",
+        "documentation": {}
+    },
+    {
+        "label": "get_valid_anchor_texts",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_valid_anchor_texts(text: str, skip_words: set) -> List[str]:\n    \"\"\"\n    Mendapatkan kata-kata yang valid untuk anchor text dari teks biasa\n    \"\"\"\n    # Split teks menjadi kata-kata\n    words = text.split()\n    # Filter kata-kata yang valid\n    valid_words = [\n        word for word in words \n        if len(word) > 4 ",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "is_good_context",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def is_good_context(text: str) -> bool:\n    \"\"\"\n    Memeriksa apakah konteks logis untuk backlink\n    \"\"\"\n    # Skip kalimat pendek\n    if len(text.split()) < 5:\n        return False\n    # Skip kalimat tanya atau seruan\n    if any(char in text for char in '?!'):\n        return False",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_best_sentence_for_anchor",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_best_sentence_for_anchor(text: str, anchor: str) -> str:\n    \"\"\"\n    Mendapatkan kalimat terbaik untuk penempatan anchor text\n    \"\"\"\n    sentences = text.split('.')\n    best_sentence = None\n    best_score = 0\n    for sentence in sentences:\n        if anchor.lower() in sentence.lower():\n            score = 0",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_paragraph_score",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_paragraph_score(text: str) -> float:\n    \"\"\"\n    Menghitung skor paragraf berdasarkan beberapa faktor\n    \"\"\"\n    score = 1.0\n    # Panjang paragraf (lebih panjang = lebih penting)\n    length = len(text.split())\n    if length > 100:\n        score *= 1.3\n    elif length > 50:",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "distribute_backlinks_strategically",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def distribute_backlinks_strategically(text_nodes: list, max_backlinks: int) -> List[int]:\n    \"\"\"\n    Mendistribusikan backlink secara strategis dan stabil\n    \"\"\"\n    # Minimal paragraf yang dibutuhkan\n    min_paragraphs = 3\n    if len(text_nodes) < min_paragraphs:\n        return [1] * len(text_nodes)\n    # Hitung skor untuk setiap text node\n    scores = [get_paragraph_score(node.string) for node in text_nodes]",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "add_backlink_to_text",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def add_backlink_to_text(text: str, backlink_url: str, skip_words: set, used_anchors: set) -> Tuple[str, bool]:\n    \"\"\"\n    Menambahkan backlink dengan pemilihan konteks yang lebih natural\n    \"\"\"\n    # Split teks menjadi kalimat\n    sentences = text.split('.')\n    valid_sentences = [s for s in sentences if is_good_context(s)]\n    if not valid_sentences:\n        return text, False\n    # Pilih kalimat terbaik",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "preserve_html_tags",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def preserve_html_tags(soup):\n    \"\"\"\n    Memastikan tag HTML penting tetap terjaga\n    \"\"\"\n    # Daftar tag yang harus dipreservasi\n    preserved_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', \n                     'ul', 'ol', 'li', 'strong', 'em', 'b', 'i',\n                     'table', 'tr', 'td', 'th']\n    # Pastikan setiap tag memiliki wrapper yang benar\n    for tag in preserved_tags:",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_tag_weight",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_tag_weight(tag_name: str) -> float:\n    \"\"\"\n    Memberikan bobot berdasarkan hierarki tag\n    \"\"\"\n    weights = {\n        'h1': 1.5,\n        'h2': 1.3,\n        'h3': 1.2,\n        'h4': 1.1,\n        'h5': 1.0,",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "should_process_node",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def should_process_node(node) -> bool:\n    \"\"\"\n    Memeriksa apakah sebuah node sebaiknya diproses untuk backlink\n    \"\"\"\n    if not isinstance(node, NavigableString):\n        return False\n    # Skip jika parent adalah tag yang tidak seharusnya memiliki link\n    if node.parent.name in ['a', 'script', 'style', 'code', 'pre']:\n        return False\n    # Skip jika teks terlalu pendek",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "is_good_phrase",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def is_good_phrase(phrase: str) -> bool:\n    \"\"\"\n    Memeriksa apakah frasa layak untuk backlink\n    \"\"\"\n    # Skip frasa pendek\n    if len(phrase.split()) < 2:\n        return False\n    # Skip frasa dengan kata-kata yang tidak diinginkan\n    bad_words = {'dalam', 'adalah', 'dengan', 'untuk', 'yang', 'dari', 'pada', \n                'akan', 'jika', 'bila', 'ketika', 'karena', 'sehingga', 'namun',",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "get_phrase_score",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def get_phrase_score(phrase: str) -> float:\n    \"\"\"\n    Menghitung skor untuk sebuah frasa berdasarkan konteks dan makna\n    \"\"\"\n    score = 1.0\n    words = phrase.split()\n    # Bonus untuk panjang frasa yang ideal\n    if 3 <= len(words) <= 8:  # Perluas range kata\n        score *= (1.0 + (len(words) * 0.1))\n    # Bonus untuk frasa yang memiliki subjek dan predikat",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "is_meaningful_phrase",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def is_meaningful_phrase(phrase: str, sentence: str) -> bool:\n    \"\"\"\n    Memeriksa apakah frasa memiliki makna yang logis dalam konteks kalimat\n    \"\"\"\n    # Analisis sintaksis\n    doc = nlp(sentence)\n    phrase_doc = nlp(phrase)\n    # Periksa koherensi gramatikal\n    if len(phrase_doc) > 1:\n        has_valid_structure = False",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "is_good_sentence",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def is_good_sentence(text: str) -> bool:\n    \"\"\"\n    Memeriksa apakah kalimat cukup panjang dan berkualitas untuk backlink\n    \"\"\"\n    # Minimal 80 karakter (sedikit dilonggarkan)\n    if len(text) < 80:\n        return False\n    # Minimal 7 kata\n    if len(text.split()) < 7:\n        return False",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "add_backlinks",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def add_backlinks(article: str, backlink_url: str, target_backlinks: int, track_backlink) -> str:\n    try:\n        if not article.strip():\n            return article\n        # Parse HTML dengan parser yang lebih ketat\n        soup = BeautifulSoup(article, 'html.parser', multi_valued_attributes=None)\n        # Dapatkan text nodes dengan mempertahankan struktur asli\n        text_nodes = []\n        valid_tags = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th', 'div', 'span'}\n        for element in soup.descendants:",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "index",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def index():\n    return render_template('index.html')\n@app.route('/process', methods=['POST'])\ndef process_article():\n    try:\n        article = request.form.get('article', \"\")\n        target_backlinks = max(50, int(request.form.get('num_backlinks', 50)))\n        # Track backlinks yang ditambahkan\n        backlinks_added = []\n        def track_backlink(phrase):",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "process_article",
+        "kind": 2,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "def process_article():\n    try:\n        article = request.form.get('article', \"\")\n        target_backlinks = max(50, int(request.form.get('num_backlinks', 50)))\n        # Track backlinks yang ditambahkan\n        backlinks_added = []\n        def track_backlink(phrase):\n            backlinks_added.append(phrase)\n        # Proses artikel dengan tracking\n        processed_article = add_backlinks(article, BACKLINK_URL, target_backlinks, track_backlink)",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "app",
+        "kind": 5,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "app = Flask(__name__)\n# URL backlink \nBACKLINK_URL = \"https://depokwebsite.com/\"\n# Load model multilingual\ntry:\n    nlp = spacy.load('xx_ent_wiki_sm')\n    # Tambahkan sentencizer ke pipeline\n    if 'sentencizer' not in nlp.pipe_names:\n        nlp.add_pipe('sentencizer')\nexcept Exception as e:",
+        "detail": "app",
+        "documentation": {}
+    },
+    {
+        "label": "BACKLINK_URL",
+        "kind": 5,
+        "importPath": "app",
+        "description": "app",
+        "peekOfCode": "BACKLINK_URL = \"https://depokwebsite.com/\"\n# Load model multilingual\ntry:\n    nlp = spacy.load('xx_ent_wiki_sm')\n    # Tambahkan sentencizer ke pipeline\n    if 'sentencizer' not in nlp.pipe_names:\n        nlp.add_pipe('sentencizer')\nexcept Exception as e:\n    print(f\"Error loading spaCy model: {e}\")\n    raise",
+        "detail": "app",
+        "documentation": {}
+    }
+]
